@@ -23,8 +23,8 @@
 #include "sample/HtsStreamingSampleAnalysis.hh"
 
 #include <memory>
+#include <unordered_map>
 
-#include "absl/container/flat_hash_set.h"
 #include "spdlog/spdlog.h"
 #include <boost/optional.hpp>
 
@@ -40,6 +40,7 @@ using ehunter::locus::initializeLocusAnalyzers;
 using ehunter::locus::LocusAnalyzer;
 using graphtools::AlignmentWriter;
 using std::string;
+using std::unordered_map;
 using std::vector;
 
 namespace ehunter
@@ -156,6 +157,14 @@ struct SampleFindingsThreadLocalData
     std::exception_ptr threadExceptionPtr = nullptr;
 };
 
+struct PendingRead
+{
+    Read read;
+    int32_t contigId;
+    int64_t start;
+    int64_t end;
+};
+
 /// \brief Analyze a series of loci on one thread
 ///
 void analyzeLocus(
@@ -232,10 +241,17 @@ SampleFindings htsStreamingSampleAnalysis(
 
     spdlog::info("Streaming reads");
 
-    auto ReadHash = [](const Read& read) { return std::hash<std::string>()(read.fragmentId()); };
-    auto ReadEq = [](const Read& read1, const Read& read2) { return (read1.fragmentId() == read2.fragmentId()); };
-    using ReadCatalog = absl::flat_hash_set<Read, decltype(ReadHash), decltype(ReadEq)>;
-    ReadCatalog unpairedReads(1000, ReadHash, ReadEq);
+    unordered_map<string, PendingRead> unpairedReads;
+
+    auto sendReadPair = [&](const AnalyzerBundle& bundle, HtsStreamingReadPairQueue::ReadPair readPair)
+    {
+        if (locusAnalyzerThreadSharedData.readPairQueue.insertReadPair(bundle.locusIndex, std::move(readPair)))
+        {
+            pool.push(
+                processLocusAnalyzerQueue, std::ref(locusAnalyzerThreadSharedData),
+                std::ref(locusAnalyzerThreadLocalDataPool), bundle.locusIndex);
+        }
+    };
 
     const unsigned htsDecompressionThreads(std::min(threadCount, 12));
     htshelpers::HtsFileStreamer readStreamer(inputPaths.htsFile(), inputPaths.reference(), htsDecompressionThreads);
@@ -262,44 +278,56 @@ SampleFindings htsStreamingSampleAnalysis(
         }
 
         Read read = readStreamer.decodeRead();
-        const auto mateIterator = unpairedReads.find(read);
+        const string fragmentId = read.fragmentId();
+        const int64_t readEnd = readStreamer.currentReadPosition() + read.sequence().length();
+        const auto mateIterator = unpairedReads.find(fragmentId);
         if (mateIterator == unpairedReads.end())
         {
-            unpairedReads.emplace(std::move(read));
+            unpairedReads.emplace(std::make_pair(
+                fragmentId,
+                PendingRead { std::move(read), readStreamer.currentReadContigId(), readStreamer.currentReadPosition(),
+                              readEnd }));
             continue;
         }
-        Read mate = std::move(*mateIterator);
-        unpairedReads.erase(mateIterator);
 
-        const int64_t readEnd = readStreamer.currentReadPosition() + read.sequence().length();
-        const int64_t mateEnd = readStreamer.currentMatePosition() + mate.sequence().length();
+        PendingRead mate = std::move(mateIterator->second);
+        unpairedReads.erase(mateIterator);
 
         vector<AnalyzerBundle> analyzerBundles = genomeQuery.analyzerFinder.query(
             readStreamer.currentReadContigId(), readStreamer.currentReadPosition(), readEnd,
-            readStreamer.currentMateContigId(), readStreamer.currentMatePosition(), mateEnd);
+            mate.contigId, mate.start, mate.end);
 
         const unsigned bundleCount(analyzerBundles.size());
         for (unsigned bundleIndex(0); bundleIndex < bundleCount; ++bundleIndex)
         {
             auto& bundle(analyzerBundles[bundleIndex]);
-            auto sendReadPair = [&](HtsStreamingReadPairQueue::ReadPair readPair)
-            {
-                if (locusAnalyzerThreadSharedData.readPairQueue.insertReadPair(bundle.locusIndex, std::move(readPair)))
-                {
-                    pool.push(
-                        processLocusAnalyzerQueue, std::ref(locusAnalyzerThreadSharedData),
-                        std::ref(locusAnalyzerThreadLocalDataPool), bundle.locusIndex);
-                }
-            };
-
             if ((bundleIndex + 1) < bundleCount)
             {
-                sendReadPair({ bundle.regionType, bundle.inputType, read, mate });
+                sendReadPair(bundle, { bundle.regionType, bundle.inputType, read, mate.read });
             }
             else
             {
-                sendReadPair({ bundle.regionType, bundle.inputType, std::move(read), std::move(mate) });
+                sendReadPair(
+                    bundle, { bundle.regionType, bundle.inputType, std::move(read), std::move(mate.read) });
             }
+        }
+    }
+
+    for (auto& fragmentIdAndRead : unpairedReads)
+    {
+        PendingRead& pendingRead = fragmentIdAndRead.second;
+        vector<AnalyzerBundle> analyzerBundles
+            = genomeQuery.analyzerFinder.query(pendingRead.contigId, pendingRead.start, pendingRead.end);
+
+        for (auto& bundle : analyzerBundles)
+        {
+            if (bundle.regionType != locus::RegionType::kTarget)
+            {
+                continue;
+            }
+
+            bundle.inputType = AnalyzerInputType::kReadOnly;
+            sendReadPair(bundle, { bundle.regionType, bundle.inputType, pendingRead.read, pendingRead.read });
         }
     }
 

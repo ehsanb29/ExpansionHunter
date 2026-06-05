@@ -55,7 +55,7 @@ LocusAligner::AlignedPair LocusAligner::align(Read& read, Read* mate, graphtools
         return { boost::none, boost::none };
     }
 
-    if (readAlign && mateAlign)
+    if (readAlign)
     {
         // Optionally buffer reads for specialized caller extensions:
         if (alignmentBuffer_)
@@ -67,6 +67,10 @@ LocusAligner::AlignedPair LocusAligner::align(Read& read, Read* mate, graphtools
         writer_->write(
             locusId_, read.fragmentId(), read.sequence(), read.isFirstMate(), read.isReversed(), read.isReversed(),
             *readAlign);
+    }
+
+    if (mate && mateAlign)
+    {
         writer_->write(
             locusId_, mate->fragmentId(), mate->sequence(), mate->isFirstMate(), mate->isReversed(), mate->isReversed(),
             *mateAlign);

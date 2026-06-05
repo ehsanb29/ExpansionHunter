@@ -36,7 +36,7 @@ namespace
 {
 bool areMatesNearby(int32_t readContigId, int64_t readPosition, int32_t mateContigId, int64_t matePosition)
 {
-    const int kMaxMateDistance = 1000;
+    const int kMaxMateDistance = 1500;
     return ((readContigId == mateContigId) && (std::abs(readPosition - matePosition) < kMaxMateDistance));
 }
 
@@ -147,13 +147,15 @@ void coalesceBundlesForFarawayMates(
     for (const auto& bundle : readBundles)
     {
         bundles.push_back(bundle);
-        bundles.back().inputType = AnalyzerInputType::kBothReads;
+        bundles.back().inputType
+            = bundle.regionType == RegionType::kTarget ? AnalyzerInputType::kReadOnly : AnalyzerInputType::kBothReads;
     }
 
     for (const auto& bundle : mateBundles)
     {
         bundles.push_back(bundle);
-        bundles.back().inputType = AnalyzerInputType::kBothReads;
+        bundles.back().inputType
+            = bundle.regionType == RegionType::kTarget ? AnalyzerInputType::kMateOnly : AnalyzerInputType::kBothReads;
     }
 }
 }
