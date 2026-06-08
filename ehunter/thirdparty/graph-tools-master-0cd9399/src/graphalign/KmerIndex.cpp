@@ -22,6 +22,7 @@
 #include "graphalign/KmerIndex.hh"
 
 #include <iostream>
+#include <limits>
 #include <list>
 #include <unordered_map>
 #include <utility>
