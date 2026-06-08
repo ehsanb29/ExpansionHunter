@@ -63,6 +63,7 @@ ExternalProject_Add(spdlog
 
 ExternalProject_Add(googletest
 	URL https://github.com/google/googletest/archive/refs/tags/release-1.10.0.tar.gz
+	PATCH_COMMAND ${CMAKE_COMMAND} -DGOOGLETEST_SOURCE_DIR=<SOURCE_DIR> -P ${CMAKE_SOURCE_DIR}/cmake/patch_googletest_werror.cmake
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${installDir}
 		-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
 		-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
