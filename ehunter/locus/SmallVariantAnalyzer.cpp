@@ -24,7 +24,6 @@
 #include <vector>
 
 #include <boost/optional.hpp>
-#include <boost/smart_ptr/make_unique.hpp>
 
 using boost::make_unique;
 using boost::optional;

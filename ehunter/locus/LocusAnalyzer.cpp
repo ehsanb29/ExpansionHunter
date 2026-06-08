@@ -21,7 +21,6 @@
 
 #include "locus/LocusAnalyzer.hh"
 
-#include <boost/smart_ptr/make_unique.hpp>
 
 #include "locus/LocusAligner.hh"
 #include "locus/RFC1MotifAnalysis.hh"

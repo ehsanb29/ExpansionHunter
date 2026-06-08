@@ -21,7 +21,6 @@
 
 #include "locus/RepeatAnalyzer.hh"
 
-#include <boost/smart_ptr/make_unique.hpp>
 
 // clang-format off
 // Note that spdlog.h must be included before ostr.h

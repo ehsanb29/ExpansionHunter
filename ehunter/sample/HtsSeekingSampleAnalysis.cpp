@@ -32,7 +32,6 @@
 
 #include <boost/functional/hash.hpp>
 #include <boost/optional.hpp>
-#include <boost/smart_ptr/make_unique.hpp>
 
 // clang-format off
 // Note that spdlog.h must be included before ostr.h
@@ -47,7 +46,6 @@
 #include "sample/IndexBasedDepthEstimate.hh"
 #include "sample/MateExtractor.hh"
 
-using boost::make_unique;
 using boost::optional;
 using ehunter::htshelpers::HtsFileSeeker;
 using ehunter::locus::LocusAnalyzer;
