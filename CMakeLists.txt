@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 project(ExpansionHunter)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Check for required packages:
@@ -75,7 +75,7 @@ ExternalProject_Add(abseil
 	URL https://github.com/abseil/abseil-cpp/archive/refs/tags/20210324.2.tar.gz
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${installDir}
 		-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-		-DCMAKE_CXX_STANDARD=11
+		-DCMAKE_CXX_STANDARD=14
 		-DBUILD_TESTING=OFF
 )
 
