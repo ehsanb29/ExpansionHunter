@@ -46,6 +46,7 @@
 #include "sample/IndexBasedDepthEstimate.hh"
 #include "sample/MateExtractor.hh"
 
+using boost::make_unique;
 using boost::optional;
 using ehunter::htshelpers::HtsFileSeeker;
 using ehunter::locus::LocusAnalyzer;
