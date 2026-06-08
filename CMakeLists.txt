@@ -72,11 +72,12 @@ ExternalProject_Add(googletest
 
 # CMAKE_CXX_STANDARD is required for macOS 10.15
 ExternalProject_Add(abseil
-	URL https://github.com/abseil/abseil-cpp/archive/refs/tags/20210324.2.tar.gz
+	URL https://github.com/abseil/abseil-cpp/archive/refs/tags/20230125.3.tar.gz
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${installDir}
 		-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
 		-DCMAKE_CXX_STANDARD=17
 		-DBUILD_TESTING=OFF
+		-DABSL_PROPAGATE_CXX_STD=ON
 )
 
 
