@@ -25,7 +25,7 @@
 
 #include <boost/optional.hpp>
 
-using boost::make_unique;
+
 using boost::optional;
 using graphtools::NodeId;
 using std::string;

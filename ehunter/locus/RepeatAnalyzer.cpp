@@ -38,7 +38,7 @@
 namespace ehunter
 {
 
-using boost::make_unique;
+
 using boost::optional;
 using graphtools::GraphAlignment;
 using graphtools::NodeId;
